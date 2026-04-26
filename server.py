@@ -1,20 +1,93 @@
 from flask import Flask, request, jsonify
+import sqlite3
 import datetime
 
 app = Flask(__name__)
+DB_NAME = "sensor_data.db"
 
+
+# ----------------------
+# DB 초기화
+# ----------------------
+def init_db():
+    conn = sqlite3.connect(DB_NAME)
+    c = conn.cursor()
+
+    c.execute("""
+    CREATE TABLE IF NOT EXISTS barometer (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        device TEXT,
+        server_time TEXT,
+        pressure REAL,
+        temperature REAL
+    )
+    """)
+
+    c.execute("""
+    CREATE TABLE IF NOT EXISTS gps (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        gps_time TEXT,
+        lat REAL,
+        lon REAL
+    )
+    """)
+
+    conn.commit()
+    conn.close()
+
+
+init_db()
+
+
+# ----------------------
+# 데이터 수신 API
+# ----------------------
 @app.route('/data', methods=['POST'])
 def receive_data():
     data = request.json
+    device = data.get("type")
 
-    pressure = data.get("pressure")
-    temperature = data.get("temperature")
+    conn = sqlite3.connect(DB_NAME)
+    c = conn.cursor()
 
-    timestamp = datetime.datetime.now().isoformat()
+    now = datetime.datetime.now().isoformat()
 
-    print(f"[{timestamp}] {pressure} Pa | {temperature} C")
+    # -------- Barometer --------
+    if device in ["FixedBarometer", "MovingBarometer"]:
+        pressure = data.get("pressure")
+        temperature = data.get("temperature")
+
+        c.execute("""
+            INSERT INTO barometer (device, server_time, pressure, temperature)
+            VALUES (?, ?, ?, ?)
+        """, (device, now, pressure, temperature))
+
+        print(f"[{device}] {pressure} Pa | {temperature} C")
+
+    # -------- GPS --------
+    elif device == "GPSTracker":
+        gps_time = data.get("time")
+        lat = data.get("lat")
+        lon = data.get("lon")
+
+        c.execute("""
+            INSERT INTO gps (gps_time, lat, lon)
+            VALUES (?, ?, ?)
+        """, (gps_time, lat, lon))
+
+        print(f"[GPS] {gps_time} | ({lat}, {lon})")
+
+    else:
+        return jsonify({"status": "error", "msg": "unknown device"})
+
+    conn.commit()
+    conn.close()
 
     return jsonify({"status": "ok"})
 
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+
+# ----------------------
+# 실행
+# ----------------------
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000)
