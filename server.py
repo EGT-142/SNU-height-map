@@ -45,6 +45,12 @@ init_db()
 # 데이터 수신 API
 # ----------------------
 @app.route('/data', methods=['POST'])
+def download_db():
+    return send_file(
+        "/var/data/sensor_data.db",
+        as_attachment=True
+    )
+    
 def receive_data():
     data = request.json
     device = data.get("type")
