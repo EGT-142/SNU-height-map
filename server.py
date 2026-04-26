@@ -28,7 +28,7 @@ def init_db():
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         gps_time TEXT,
         lat REAL,
-        lon REAL
+        lng REAL
     )
     """)
 
@@ -68,14 +68,14 @@ def receive_data():
     elif device == "GPSTracker":
         gps_time = data.get("time")
         lat = data.get("lat")
-        lon = data.get("lon")
+        lng = data.get("lng")
 
         c.execute("""
-            INSERT INTO gps (gps_time, lat, lon)
+            INSERT INTO gps (gps_time, lat, lng)
             VALUES (?, ?, ?)
-        """, (gps_time, lat, lon))
+        """, (gps_time, lat, lng))
 
-        print(f"[GPS] {gps_time} | ({lat}, {lon})")
+        print(f"[GPS] {gps_time} | ({lat}, {lng})")
 
     else:
         return jsonify({"status": "error", "msg": "unknown device"})
