@@ -3,7 +3,9 @@ import sqlite3
 import datetime
 
 app = Flask(__name__)
-DB_NAME = "sensor_data.db"
+import os
+
+DB_NAME = os.getenv("DB_PATH", "/var/data/sensor_data.db")
 
 
 # ----------------------
